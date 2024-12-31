@@ -40,4 +40,49 @@ myDF <- rbindlist(myData) %>%
 #  IATTC FILES
 #-------------------------------------------------------------------------------
 # Read in files
-dansFiles <- list.files(pattern = '.xlsx')
+danFiles <- list.files(pattern = '.xlsx')
+danData1 <- read_xlsx(danFiles[1], sheet = 2) %>% 
+  select(dataname, year, month, day, mptlon, mptlat, tagsst)
+danData2 <- read_xlsx(danFiles[1], sheet = 4) %>% 
+  select(dataname, year, month, day, mptlon, mptlat, tagsst)
+danData3 <- read_xlsx(danFiles[2]) %>% 
+  select(dataname, year, month, day, mptlon, mptlat, mptsst) %>% 
+  rename(tagsst=mptsst)
+danData4 <- read.csv('tL98479a.csv') %>% 
+  select(dataname, year, month, day, mptlon, mptlat, tagsst)
+
+# Combine all and rename columns
+danData <- bind_rows(list(danData1, danData2, danData3, danData4), .id = 'id') %>% 
+  rename(tag.serial=dataname, lon=mptlon, lat=mptlat, sst=tagsst)
+
+
+#-------------------------------------------------------------------------------
+# COMBINE ALL DATA
+#-------------------------------------------------------------------------------
+allData <- myDF %>% 
+  bind_cols(id='5') %>% 
+  bind_rows(danData)
+
+
+# duplicates?
+dupes <- danData %>% 
+  group_by(dataname, id) %>% 
+  distinct(dataname) %>% 
+  data.frame() %>% 
+  bind_rows(data.frame(id='5', dataname=unique(myVec)))
+dupesIdx <- which(duplicated(dupes$dataname) | duplicated(dupes$dataname, fromLast=T))
+
+#-------------------------------------------------------------------------------
+# CHECK DATA AND GET METRICS
+#-------------------------------------------------------------------------------
+# Plot tracks
+ggplot() + 
+  borders(database = 'world2', fill='black') + 
+  geom_path(data=allData, aes(lon, lat, group=tag.serial, color=tag.serial)) + 
+  coord_quickmap(xlim=c(140,280),ylim=c(-30,40)) + 
+  theme_bw()
+
+# How many tags?
+length(unique(allData$tag.serial))
+
+
