@@ -96,7 +96,7 @@ dupes[dupesIdx,]
 allData <- allData[-which(allData$tag.serial %in% dupes$tag.serial[dupesIdx] & allData$id == 5),] %>% 
   mutate(id=NULL)
 
-write.csv(file = 'Tag_BET_All_MPTs.png', x = allData, quote = F, row.names = F)
+write.csv(file = 'Tag_BET_All_MPTs.csv', x = allData, quote = F, row.names = F)
 
 #-------------------------------------------------------------------------------
 # CHECK DATA AND GET METRICS
