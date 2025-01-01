@@ -6,7 +6,7 @@ require("rgdal")
 require("rgeos")
 require("dplyr")
 library(ggExtra)
-library(maptools)
+#library(maptools)
 library(adehabitatHR)
 library(here)
 library(maps)
@@ -16,7 +16,7 @@ library(data.table)
 library(lubridate)
 
 ##this first bit is a dummy test to see if the function is running ok
-
+setwd(here('Output'))
 
 ## 2. source pseudo-absence functions
 source(here("Scripts/create_bkgd_pseudo_absences_function.R"))
@@ -27,59 +27,75 @@ IDs <- sapply(strsplit(data$names, ":"), function(x) x[1])
 wrld_simpl <- map2SpatialPolygons(data, IDs=IDs, proj4string=CRS("+proj=longlat +datum=WGS84"))
 wrld=SpatialPolygons(wrld_simpl@polygons,proj4string=wrld_simpl@proj4string) %>%
   gBuffer(., byid=TRUE, width=0)
+# Johanna version without maptools
+data=maps::map("world2",fill=T)
+IDs <- sapply(strsplit(data$names, ":"), function(x) x[1])
+wrld_simpl <- st_as_sf(data)
+wrld_simpl <- st_transform(wrld_simpl, "+proj=longlat +datum=WGS84")
+wrld <- as(wrld_simpl, Class = "Spatial")
+
 
 ## 4. load global template
 # this is an empty global raster at .25 degrees that we will use to ensure pseduo absences are not generated for the same day/pixel as presences
-template=raster(here("Data/template.grd"))
+# template=raster(here("Data/template.grd"))
+# string=seq(1:ncell(template))
+# template[]=string
+# Johanna version without a template on hand
+# RasterLayer with the default parameters
+template <- raster()
+# change resolution
+res(template) <- 0.25
+template
 string=seq(1:ncell(template))
 template[]=string
 
-# ## 5. generate some dummy data, comment this out before using, just here to demonstrate how functions work
-# # how the function expects the dataframe to be formatted ##
-# # column 'date' -> YYYY-MM-DD in *character* format (will likely need to be reformatted from original data)
-# # column 'lon' -> 0 to 360 longitude column in numeric format (will likely need to be transformed from -180 to 180 formated in original data)
-# # column 'lat' -> -90 to 90 latitude column in numeric format (will likely be in correct format in original data)
-# 
-# date=sample(seq(as.Date("2017-01-10"),as.Date("2018-02-10"),by="day"),size=300,replace = T) %>% as.character()
-# lon=sample(seq(159,260,by=.25),size=length(date),replace = T)
-# lat=sample(seq(10,50,by=.25),size=length(date),replace = T)
-# othervar1=rep("test",length(date)) # added to make sure function carries thru other attributes
-# othervar2=rep("test2",length(date))# added to make sure function carries thru other attributes
-# df=data.frame(lon=as.numeric(lon),
-#               lat=as.numeric(lat),
-#               date=as.character(date),
-#               size=as.character(othervar1),
-#               tagID=as.character(othervar2),
-#               stringsAsFactors = F)
-# 
-# ## 6. run the function
-# csvdir=here('../')
-# polydir=here('Output/')
-# species="test"
-# generate_pseudo_abs_fcn(dat=df,
-#                         csv_outdir=csvdir,
-#                         poly_outdir=polydir,
-#                         sp_name=species)
-# 
-# 
-# ## 7. check what happened
-# PA_dat=read.csv(glue("{csvdir}/{species}_presAbs.csv"))
-# poly=st_read(glue("{polydir}/{species}.shp"))
-# 
-# minx = min(PA_dat$lon)
-# maxx = max(PA_dat$lon)
-# miny = min(PA_dat$lat)
-# maxy = max(PA_dat$lat)
-# 
-# 
-# #looks like some presence go over land?!
-# ggplot()+
-#   geom_polygon(data = fortify(maps::map("world2",plot=FALSE,fill=TRUE)), aes(x=long, y = lat, group=group),color="black",fill="grey")+
-#   geom_point(data=PA_dat,aes(x=lon,y=lat,color=as.factor(presAbs),group=presAbs),size = 1, shape = 21)+
-#   geom_sf(data=poly,fill=NA,color="black")+
-#   scale_color_manual("PresAbs",values=c("1"="blue","0"="red"))+
-#   coord_sf(xlim = c(minx, maxx), ylim = c(miny,maxy))+
-#   ggtitle(glue("{species} npre={nrow(PA_dat)} (1:1 ratio)"))
+
+## 5. generate some dummy data, comment this out before using, just here to demonstrate how functions work
+# how the function expects the dataframe to be formatted ##
+# column 'date' -> YYYY-MM-DD in *character* format (will likely need to be reformatted from original data)
+# column 'lon' -> 0 to 360 longitude column in numeric format (will likely need to be transformed from -180 to 180 formated in original data)
+# column 'lat' -> -90 to 90 latitude column in numeric format (will likely be in correct format in original data)
+
+date=sample(seq(as.Date("2017-01-10"),as.Date("2018-02-10"),by="day"),size=300,replace = T) %>% as.character()
+lon=sample(seq(159,260,by=.25),size=length(date),replace = T)
+lat=sample(seq(10,50,by=.25),size=length(date),replace = T)
+othervar1=rep("test",length(date)) # added to make sure function carries thru other attributes
+othervar2=rep("test2",length(date))# added to make sure function carries thru other attributes
+df=data.frame(lon=as.numeric(lon),
+              lat=as.numeric(lat),
+              date=as.character(date),
+              size=as.character(othervar1),
+              tagID=as.character(othervar2),
+              stringsAsFactors = F)
+
+## 6. run the function
+csvdir=here('Output/')
+polydir=here('Output/')
+species="test"
+generate_pseudo_abs_fcn(dat=df,
+                        csv_outdir=csvdir,
+                        poly_outdir=polydir,
+                        sp_name=species)
+
+
+## 7. check what happened
+PA_dat=read.csv(glue("{csvdir}/{species}_presAbs.csv"))
+poly=st_read(glue("{polydir}/{species}.shp"))
+
+minx = min(PA_dat$lon)
+maxx = max(PA_dat$lon)
+miny = min(PA_dat$lat)
+maxy = max(PA_dat$lat)
+
+
+#looks like some presence go over land?!
+ggplot()+
+  geom_polygon(data = fortify(maps::map("world2",plot=FALSE,fill=TRUE)), aes(x=long, y = lat, group=group),color="black",fill="grey")+
+  geom_point(data=PA_dat,aes(x=lon,y=lat,color=as.factor(presAbs),group=presAbs),size = 1, shape = 21)+
+  geom_sf(data=poly,fill=NA,color="black")+
+  scale_color_manual("PresAbs",values=c("1"="blue","0"="red"))+
+  coord_sf(xlim = c(minx, maxx), ylim = c(miny,maxy))+
+  ggtitle(glue("{species} npre={nrow(PA_dat)} (1:1 ratio)"))
 
 
 ################################################################################################################################################################
