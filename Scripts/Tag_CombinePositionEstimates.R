@@ -36,6 +36,26 @@ myDF <- rbindlist(myData) %>%
   mutate(X=NULL) %>% 
   data.frame()
 
+
+# Replacing the id's to be consistent with Dan's tags
+# Get all tag names and ids
+myVec1 <- lapply(strsplit(myFiles, '_'), "[", 3, drop=F) %>% 
+  unlist()
+myVec2 <- lapply(strsplit(myFiles, '_'), "[", 2, drop=F) %>% 
+  unlist()
+# Replace NA's with the other name so no NAs
+myVec2[which(myVec2 == 'NA')] <- myVec1[which(myVec2 == 'NA')]
+length(myVec1)
+length(myVec2)
+
+# Replace all tag.serial numbers with the second TagID that's in the filename
+for (i in seq_along(myVec2)) {
+  idx <- which(myDF$tag.serial == myVec2[i])
+  myDF$tag.serial[idx] <- myVec1[i]
+}
+head(myDF)
+
+
 #-------------------------------------------------------------------------------
 #  IATTC FILES
 #-------------------------------------------------------------------------------
@@ -63,14 +83,17 @@ allData <- myDF %>%
   bind_cols(id='5') %>% 
   bind_rows(danData)
 
-
 # duplicates?
-dupes <- danData %>% 
-  group_by(dataname, id) %>% 
-  distinct(dataname) %>% 
-  data.frame() %>% 
-  bind_rows(data.frame(id='5', dataname=unique(myVec)))
-dupesIdx <- which(duplicated(dupes$dataname) | duplicated(dupes$dataname, fromLast=T))
+dupes <- allData %>% 
+  group_by(tag.serial, id) %>% 
+  distinct(tag.serial) %>% 
+  data.frame()
+dupesIdx <- which(duplicated(dupes$tag.serial) | duplicated(dupes$tag.serial, fromLast=T))
+dupes[dupesIdx,]
+
+# Remove duplicates
+# Keep Dan's and remove mine. 
+allData <- allData[-which(allData$tag.serial %in% dupes$tag.serial[dupesIdx] & allData$id == 5),]
 
 #-------------------------------------------------------------------------------
 # CHECK DATA AND GET METRICS
