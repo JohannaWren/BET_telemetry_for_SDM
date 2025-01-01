@@ -93,7 +93,8 @@ dupes[dupesIdx,]
 
 # Remove duplicates
 # Keep Dan's and remove mine. 
-allData <- allData[-which(allData$tag.serial %in% dupes$tag.serial[dupesIdx] & allData$id == 5),]
+allData <- allData[-which(allData$tag.serial %in% dupes$tag.serial[dupesIdx] & allData$id == 5),] %>% 
+  mutate(id=NULL)
 
 #-------------------------------------------------------------------------------
 # CHECK DATA AND GET METRICS
