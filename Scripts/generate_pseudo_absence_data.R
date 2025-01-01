@@ -2,8 +2,8 @@
 ## 1. load libraries
 library(sf)
 library(raster)
-require("rgdal")
-require("rgeos")
+#require("rgdal")
+#require("rgeos")
 require("dplyr")
 library(ggExtra)
 #library(maptools)
@@ -22,17 +22,18 @@ setwd(here('Output'))
 source(here("Scripts/create_bkgd_pseudo_absences_function.R"))
 
 ## 3. load world data to get coordinate system
-data=maps::map("world2",fill=T)
-IDs <- sapply(strsplit(data$names, ":"), function(x) x[1])
-wrld_simpl <- map2SpatialPolygons(data, IDs=IDs, proj4string=CRS("+proj=longlat +datum=WGS84"))
-wrld=SpatialPolygons(wrld_simpl@polygons,proj4string=wrld_simpl@proj4string) %>%
-  gBuffer(., byid=TRUE, width=0)
+# data=maps::map("world2",fill=T)
+# IDs <- sapply(strsplit(data$names, ":"), function(x) x[1])
+# wrld_simpl <- map2SpatialPolygons(data, IDs=IDs, proj4string=CRS("+proj=longlat +datum=WGS84"))
+# wrld=SpatialPolygons(wrld_simpl@polygons,proj4string=wrld_simpl@proj4string) %>%
+#   gBuffer(., byid=TRUE, width=0)
 # Johanna version without maptools
 data=maps::map("world2",fill=T)
 IDs <- sapply(strsplit(data$names, ":"), function(x) x[1])
 wrld_simpl <- st_as_sf(data)
 wrld_simpl <- st_transform(wrld_simpl, "+proj=longlat +datum=WGS84")
-wrld <- as(wrld_simpl, Class = "Spatial")
+#wrld <- as(wrld_simpl, Class = "Spatial")
+wrld <- as_Spatial(wrld_simpl, cast = TRUE, IDs = paste0("ID", seq_along(wrld_simpl)))
 
 
 ## 4. load global template
