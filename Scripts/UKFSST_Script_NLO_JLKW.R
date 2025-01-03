@@ -114,7 +114,8 @@ tagLoc <- filter(tagLoc, YMD <= as.Date(tagMeta$RecoverDate, '%d/%m/%Y'))
 tail(tagLoc)
 ##
 tagLoc <- tagLoc[-2,]
-tagLoc[1,] <-  tagMeta[, c("DeployDate", "Longitude...180.", "Latitude")]
+#tagLoc[1,] <-  tagMeta[, c("DeployDate", "Longitude...180.", "Latitude")]
+tagLoc[1,2:3] <-  tagMeta[, c("release_lon", "release_lat")]
 ##
 ## Add recover date and location to the end
 #tagLoc <- tagLoc %>% add_row(YMD=tagMeta$RecoverDate, Longitude=tagMeta$Rec_Lon, Latitude=tagMeta$Rec_Lat)
@@ -160,30 +161,64 @@ ggplot(tagData, aes(Long, Lat, color=sst)) +
 
 # Remove any points that are way off. This will usually be the latitudes, the longitudes tend to be much better.
 # If you have a 'bad' point, just remove the lat but leave the longitude in there. 
-tagData %>% 
-  mutate(daysAtLiberty=row_number()) %>% 
-  ggplot(aes(daysAtLiberty, Lat)) +
-  geom_path(linewidth=0.5) +
-  geom_point(size=2)
+# Trying to come up with a less subjective way to clean the data so I wrote some code that removes points that are farther away
+# than a bigeye can reasonable swim in the time between points. Doing this for both long and lats
+# Distance calculations
+library(geosphere)
+library(scales) 
+BETswimSpeed <- 3  # in m/s
+times <- as.Date(do.call(sprintf, c(tagData[,3:1], '%s-%s-%s')))
+timeScale <-  rescale(times, to=c(0,(times[length(times)]-times[1])))
 
-tagData %>% 
-  mutate(daysAtLiberty=row_number()) %>% 
-  ggplot(aes(daysAtLiberty, Long)) +
-  geom_path(linewidth=0.5) +
-  geom_point(size=2)
+# Loop through the lats and calculate distance between consecutive lats, assuming a constand longitude for ease
+for (i in seq_along(timeScale[-1])) {
+  j=i+1
+  # If there are NAs that we introduce, we make sure to always use the point before the NAs start
+  if (is.na(tagData$Lat[i])) {
+    i=tail(which(!is.na(tagData$Lat[1:i])),n=1)
+  }
+  # Calculate distance between today and the next time step
+  dist <- distMeeus(data.frame(Long=205,Lat=tagData[c(i,j),5]))
+  totdist <- (dist > (BETswimSpeed*86400*diff.Date(times[c(i,j)])))
+  # If the distance is too long for what a BET can realistically swim in that amount of time, set the Lat value to NA
+  if (totdist == T) { tagData$Lat[j] <- NA}
+}
 
-tagData %>% 
-  mutate(daysAtLiberty=row_number()) %>% 
-  ggplot(aes(daysAtLiberty, sst)) +
-  geom_path(linewidth=0.5) +
-  geom_point(size=2)
+# And doing the same for the longs, assuming a constant latitude for ease
+for (i in seq_along(timeScale[-1])) {
+  j=i+1
+  # If there are NAs that we introduce, we make sure to always use the point before the NAs start
+  if (is.na(tagData$Long[i])) {
+    i=tail(which(!is.na(tagData$Long[1:i])),n=1)
+  }
+  # Calculate distance between today and the next time step
+  dist <- distMeeus(data.frame(Long=tagData[c(i,j),4], Lat=0))
+  totdist <- (dist > (BETswimSpeed*86400*diff.Date(times[c(i,j)])))
+  # If the distance is too long for what a BET can realistically swim in that amount of time, set the Lon value to NA
+  if (totdist == T) { tagData$Long[j] <- NA}
+}
+
+# See how it looks
+ggplot(tagData, aes(timeScale, Lat)) +
+  geom_path() +
+  geom_point(size=2) 
+
+ggplot(tagData, aes(timeScale, Long)) +
+  geom_path() +
+  geom_point(size=2) 
+
+ggplot(tagData, aes(timeScale, sst)) +
+  geom_path() +
+  geom_point(size=2) 
+
 #-------------------------------------------------------------------------------
 # Clean up records for each tag
-# Tag 1890056
-tagData$Lat[which(tagData$Lat > 15 | tagData$Lat < -15)] <- NA
-tagData$Long[c(14:15,19,28,29,84)] <- NA
 
 
+
+# # Tag 1890056
+# tagData$Lat[which(tagData$Lat > 15 | tagData$Lat < -15)] <- NA
+# tagData$Long[c(14:15,19,28,29,84)] <- NA
 #tagData$Lat[which(tagData$Lat < 10)] <- NA
 #tagData$Lat[which(tagData$Lat > 35)] <- NA
 #Tag 168581
