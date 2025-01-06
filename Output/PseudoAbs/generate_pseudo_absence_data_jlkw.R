@@ -202,13 +202,23 @@ maxy = max(PA_bsh_all$lat)
 
 #plot poly w presence/ abs
 
+# ggplot()+
+#   geom_polygon(data = fortify(maps::map("world2",plot=FALSE,fill=TRUE)), aes(x=long, y = lat, group=group),color="black",fill="grey")+
+#   geom_point(data=PA_bsh_all,aes(x=lon,y=lat,color=as.factor(presAbs),group=presAbs),size = 0.5, shape = 21)+
+#   geom_sf(data=poly,fill=NA,color="black")+
+#   scale_color_manual("PresAbs",values=c("1"="blue","0"="red"))+
+#   coord_sf(xlim = c(176, 260), ylim = c(miny,maxy), expand=FALSE)#+
+#   #ggtitle(glue("{species} npre={nrow(PA_sp_all)} (1:1 ratio)"))
+
+# Johanna's version
 ggplot()+
-  geom_polygon(data = fortify(maps::map("world2",plot=FALSE,fill=TRUE)), aes(x=long, y = lat, group=group),color="black",fill="grey")+
-  geom_point(data=PA_bsh_all,aes(x=lon,y=lat,color=as.factor(presAbs),group=presAbs),size = 0.5, shape = 21)+
-  geom_sf(data=poly,fill=NA,color="black")+
+  borders(database = 'world2', color="black",fill="grey", lwd=0.5)+
+  geom_point(data=pseudoAbs,aes(x=lon,y=lat,color=as.factor(presAbs),group=presAbs),size = 0.5, shape = 21)+
+  #geom_sf(data=poly,fill=NA,color="black")+
   scale_color_manual("PresAbs",values=c("1"="blue","0"="red"))+
-  coord_sf(xlim = c(176, 260), ylim = c(miny,maxy), expand=FALSE)#+
-  #ggtitle(glue("{species} npre={nrow(PA_sp_all)} (1:1 ratio)"))
+  coord_sf(xlim = c(140, 280), ylim = c(-25,40), expand=FALSE)#+
+  ggtitle(glue("{species} npre={nrow(pseudoAbs)} (1:1 ratio)"))
+ggsave('BET_PresAbs.png', width=10, height=5, dpi=300)
 
 
 ############################# STOP HERE #################################
