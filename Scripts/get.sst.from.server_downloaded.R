@@ -1,4 +1,4 @@
-get.sst.from.server <- function (track, folder = tempdir(), res = "high")
+get.sst.from.server.jlkw <- function (track, folder = tempdir(), res = "high")
 {
     ### Updated Jan 2023
 	###-------------------------------------------------------------
@@ -19,33 +19,31 @@ get.sst.from.server <- function (track, folder = tempdir(), res = "high")
     fmtDay <- function(day) {
         formatC(day, digits = 2, flag = "0", format = "d")
     }
-    # testdir <- file.info(folder)$isdir
-    # if (is.na(testdir)) {
-    #     dir.create(folder)
-    # }
-    # else {
-    #     if (!testdir) 
-    #         stop("The folder name supplied is in fact a filename")
-    # }
-    # unlink(paste(folder, "/*", sep = ""), F)
-    # sstfolder <- paste(folder, "sst_files", sep = "/")
-    # testdir <- file.info(sstfolder)$isdir
-    # if (is.na(testdir)) {
-    #     dir.create(sstfolder)
-    # }
-    # else {
-    #     if (!testdir) 
-    #         stop("The folder name supplied is in fact a filename")
-    # }
-    # unlink(paste(sstfolder, "/*", sep = ""), F)
+    testdir <- file.info(folder)$isdir
+    if (is.na(testdir)) {
+        dir.create(folder)
+    } else {
+        if (!testdir)
+            stop("The folder name supplied is in fact a filename")
+    }
+    unlink(paste(folder, "/*", sep = ""), F)
+    sstfolder <- paste(folder, "sst_files", sep = "/")
+    testdir <- file.info(sstfolder)$isdir
+    if (is.na(testdir)) {
+        dir.create(sstfolder)
+    } else {
+        if (!testdir)
+            stop("The folder name supplied is in fact a filename")
+    }
+    unlink(paste(sstfolder, "/*", sep = ""), F)
     if (is.data.frame(track))
         track <- list(track)
-    minDate <- min(unlist(lapply(track, function(x) mdy.date(x[1, 2], x[1, 1], x[1, 3]))))
-    maxDate <- max(unlist(lapply(track, function(x) mdy.date(x[nrow(x), 2], x[nrow(x), 1], x[nrow(x), 3]))))
-    minLon <- min(unlist(lapply(track, function(x) min(x[, 4])))) - 2
-    maxLon <- max(unlist(lapply(track, function(x) max(x[, 4])))) + 2
-    minLat <- min(unlist(lapply(track, function(x) min(x[, 5])))) - 4
-    maxLat <- max(unlist(lapply(track, function(x) max(x[, 5])))) + 4
+    minDate <- min(julian(as.Date(paste(track[[1]]$year[1], track[[1]]$month[1], track[[1]]$day[1], sep='-')),origin=as.Date('1800-01-01')))
+    maxDate <- min(julian(as.Date(paste(track[[1]]$year[nrow(track[[1]])], track[[1]]$month[nrow(track[[1]])], track[[1]]$day[nrow(track[[1]])], sep='-')),origin=as.Date('1800-01-01')))
+    minLon <- min(unlist(lapply(track, function(x) min(x[, 4],na.rm=T)))) - 2
+    maxLon <- max(unlist(lapply(track, function(x) max(x[, 4],na.rm=T)))) + 2
+    minLat <- min(unlist(lapply(track, function(x) min(x[, 5],na.rm=T)))) - 4
+    maxLat <- max(unlist(lapply(track, function(x) max(x[, 5],na.rm=T)))) + 4
     latlow <- ifelse(minLat < -90, -90, trunc(minLat))
     lathigh <- ifelse(maxLat > 90, 90, trunc(maxLat))
     lonlow <- ifelse(minLon < 0, trunc(minLon) + 360, trunc(minLon))
@@ -97,37 +95,36 @@ get.sst.from.server <- function (track, folder = tempdir(), res = "high")
     
     #######---------------------------------------------------------------------
     ####### Johanna Edit
-    ## I think I can just go and swap in the fname file to the one I have downloaded. I can put some check in to make sure the tags are withing 
-    ## spatial and temporal range but other than that, I think I can just start with the downloaded file from here
-    fname <- '~/Downloads/sst.week.mean (2).nc'
-    dims <- extent(c(minLon, maxLon, minLat, maxLat))
-    sstfolder <- '~/Desktop/recode/'
-    miDate <- date.mmddyy(minDate)
-    maDate <- date.mmddyy(maxDate)
-    sstCrop <- crop(brick(fname), dims)
-    idx1 <- which.min(abs(sstCrop@z$time - as.Date(miDate, format='%m/%d/%Y'))) #which(sstCrop@z$time == as.Date(miDate, format='%m/%d/%Y'))
-    idx2 <- which.min(abs(sstCrop@z$time - as.Date(maDate, format='%m/%d/%Y'))) #which(sstCrop@z$time == as.Date(maDate, format='%m/%d/%Y'))
-    sstCropDT <- sstCrop[[idx1:idx2]]
+    ## I just calculated the indexes for lat, lon, and date and kept everything the same but only extracted within the ranges.
+    ## So I added some [lonIdx] brackets to the original lon[i]. very minor changes but I think it's working
+    ## Was faster than trying to subset the big dataset and then use without indexing
+    
 	### Extract individual layers from netcdf file
-    nc <- nc_open(fname)
+    nc <- nc_open('c:/Users/Johanna.Wren/Desktop/sst.week.mean.nc')
     lon <- ncvar_get(nc, varid = "lon")
     lat <- ncvar_get(nc, varid = "lat")
     dates <- as.Date("1800-01-01") + ncvar_get(nc, varid = "time")
     every.day <- 7
+    lonIdx <- which(nc$dim$lon$vals < maxLon & nc$dim$lon$vals > minLon)
+    latIdx <- which(nc$dim$lat$vals < maxLat & nc$dim$lat$vals > minLat)
+    dateIdx <- which(nc$dim$time$vals < (maxDate+14) & nc$dim$time$vals > (minDate-14))
     vv <- nc$var[[1]]
-    varsize <- vv$varsize
+    #varsize <- vv$varsize
+    varsize <- c(length(lonIdx), length(latIdx), length(dateIdx))
     ndims <- vv$ndims
     nt <- varsize[ndims]
-    for (i in 1:nt) {
-        start <- rep(1, ndims)
-        start[ndims] <- i
+
+    for (i in seq_along(dateIdx)) {
+      
+        start <- c(lonIdx[1], latIdx[1], 1)   # Johanna changed to 1 from i Jan 7, 2025
+        start[ndims] <- dateIdx[i]
         count <- varsize
         count[ndims] <- 1
         sst <- round(t(ncvar_get(nc, vv, start = start, count = count)), 2)
 		# Add dummy header row
         xyz <- rbind(rep(NA,3))
-        d <- mdy.date(as.numeric(format(dates[i], "%m")), as.numeric(format(dates[i], 
-            "%d")), as.numeric(format(dates[i], "%Y")))
+        d <- mdy.date(as.numeric(format(dates[dateIdx][i], "%m")), as.numeric(format(dates[dateIdx][i], 
+            "%d")), as.numeric(format(dates[dateIdx][i], "%Y")))
         y1 <- date.mdy(d)$year
         d1 <- d - mdy.date(month = 1, day = 1, year = y1) + 1
         y2 <- date.mdy(d + every.day - 1)$year
@@ -136,8 +133,8 @@ get.sst.from.server <- function (track, folder = tempdir(), res = "high")
         filename <- paste("RS", y1, fmtDay(d1), "_", y2, fmtDay(d2), 
             "_", "sst", ".xyz", sep = "")
         dest <- paste(sstfolder, filename, sep = "/")
-		for (j in 1:length(lon)) {
-            xyz <- rbind(xyz, cbind(lat, lon[j], sst[, j]))
+		for (j in 1:length(lonIdx)) {
+            xyz <- rbind(xyz, cbind(lat[latIdx], lon[lonIdx][j], sst[, j]))
         }
 		# Remove dummy header
 		xyz <- xyz[-1,]
