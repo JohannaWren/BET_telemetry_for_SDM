@@ -100,7 +100,8 @@ get.sst.from.server.jlkw <- function (track, folder = tempdir(), res = "high")
     ## Was faster than trying to subset the big dataset and then use without indexing
     
 	### Extract individual layers from netcdf file
-    nc <- nc_open('c:/Users/Johanna.Wren/Desktop/sst.week.mean.nc')
+    #nc <- nc_open('c:/Users/Johanna.Wren/Desktop/sst.week.mean.nc')
+    nc <- nc_open('Data/sst.week.mean.nc')
     lon <- ncvar_get(nc, varid = "lon")
     lat <- ncvar_get(nc, varid = "lat")
     dates <- as.Date("1800-01-01") + ncvar_get(nc, varid = "time")
@@ -118,8 +119,10 @@ get.sst.from.server.jlkw <- function (track, folder = tempdir(), res = "high")
       
         start <- c(lonIdx[1], latIdx[1], 1)   # Johanna changed to 1 from i Jan 7, 2025
         start[ndims] <- dateIdx[i]
+        print(start)
         count <- varsize
         count[ndims] <- 1
+        print(count)
         sst <- round(t(ncvar_get(nc, vv, start = start, count = count)), 2)
 		# Add dummy header row
         xyz <- rbind(rep(NA,3))
