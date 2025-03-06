@@ -95,8 +95,6 @@ dupes[dupesIdx,]
 allData <- allData[-which(allData$tag.serial %in% dupes$tag.serial[dupesIdx] & allData$id == 5),] %>% 
   mutate(id=NULL)
 
-write.csv(file = 'Tag_BET_All_MPTs.csv', x = allData, quote = F, row.names = F)
-
 #-------------------------------------------------------------------------------
 # CHECK DATA AND GET METRICS
 #-------------------------------------------------------------------------------
@@ -117,4 +115,13 @@ ggplot() +
 # How many tags?
 length(unique(allData$tag.serial))
 
+# Remove tags that are on land
+allData <- allData %>% 
+  filter(tag.serial != '890209')
+
+#-------------------------------------------------------------------------------
+# SAVE FINAL DATA
+#-------------------------------------------------------------------------------
+# Save dataset
+write.csv(file = 'Output/Tag_BET_All_MPTs_6MAR2025.csv', x = allData, quote = F, row.names = F)
 
