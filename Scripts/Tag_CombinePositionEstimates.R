@@ -3,38 +3,40 @@ library(dplyr)
 library(data.table)
 library(here)
 library(readxl)
+library(here)
 
 # Set working directory
-mainDir <- paste(here(), 'Output',sep='/')
+mainDir <- here()
 setwd(mainDir)
 
 #-------------------------------------------------------------------------------
 # MY PROCESSED FILES
 #-------------------------------------------------------------------------------
-# Read in the files
-myFiles <- list.files(path='FinalOutputTags/', full.names = T)
-myVec <- lapply(strsplit(myFiles, '_'), "[", 3, drop=F) %>% 
-  unlist()
+# Read in all files into one dataframe
+allFiles <- dir('Data/AllFinishedTags', recursive=T, full.names=T, pattern='_a.csv')
+# Check for duplicates
+idx <- transpose(strsplit(allFiles, '/'))[[3]]
+idxVec1 <- transpose(strsplit(idx, '_'))[[3]]
+idxVec2 <- transpose(strsplit(idx, '_'))[[2]]
+duplicated(idxVec1) | duplicated(idxVec1, fromLast = T)
+# Remove duplicates if any
+which(duplicated(idxVec1) | duplicated(idxVec1, fromLast = T))
+allFiles <- allFiles[-c(48,49)]
+idxVec1 <- idxVec1[-c(48,49)]
+idxVec2 <- idxVec2[-c(48,49)]
 
-# Remove duplicates 
-# Some files have both fit1 and fit2 saved, and I wast to use only one model. Refer to my tag processing notes to see which is the best fit model. 
-myFiles <- myFiles[-which(duplicated(myVec) | duplicated(myVec, fromLast = T))[2]]
+# Read in all files into a list
+dataList <- lapply(allFiles, read.csv)
+# Add tagID to the files
+dataList2 <- mapply(cbind, dataList, tagID=idxVec1, SIMPLIFY=F)
+# Put into one dataframe
+dataDF <- rbindlist(dataList2)
+head(dataDF)
 
-# Read in files and make into one dataframe
-myData <- lapply(myFiles, FUN=read.csv)
-myDF <- rbindlist(myData)
-
-# One file is in the wrong format so that needs to be fixed
-names(myData[[1]])
-names(myData[[63]])
-myData[[63]] <- myData[[63]] %>% 
-  mutate(tag.serial=strsplit(myFiles[63], '_')[[1]][2]) %>% 
-  select(X, tag.serial, year, month, day, lon, lat, sst)
-
-# Try again
-myDF <- rbindlist(myData) %>% 
-  mutate(X=NULL) %>% 
-  data.frame()
+# Get rid of all the unnecessary data and save just the tag number, date, location, and temperature.  
+dataFinal <- dataDF %>% 
+  select(tagID, year, month, day, mptlon, mptlat, mptsst, tagsst) %>% 
+  rename(lon=mptlon, lat=mptlat, sst=mptsst)
 
 
 # Replacing the id's to be consistent with Dan's tags

@@ -3,6 +3,7 @@
 # Add libraries
 library(dplyr)
 library(data.table)
+library(readxl)
 
 # Set working directory
 mainDir <- "~/Documents/TunaMovement/RAnalysis_Tags/"
@@ -28,6 +29,12 @@ dataDF$tagID <- tagID
 dataFinal <- dataDF %>% 
   select(tagID, year, month, day, mptlon, mptlat, mptsst, tagsst) %>% 
   rename(lon=mptlon, lat=mptlat, sst=mptsst)
+
+# Read in Dan's files
+dan1 <- read_xlsx('ProcessedTags/AdditionalBETMovementPaths.xlsx')
+
+# Combine all files and make ready for pseudoabsences
+
 
   
 
